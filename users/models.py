@@ -6,9 +6,9 @@ class CustomUser(AbstractUser):
   address = models.TextField()
 
   class Address_type(models.TextChoices):
-    HOME = 'Home', 'home'
-    Work = 'Work', 'work'
-    OTHER = 'Other', 'other'
+    HOME = 'home', 'Home'
+    WORK = 'work', 'Work'
+    OTHER = 'other', 'Other'
 
   address_type = models.CharField(max_length=5 , choices=Address_type.choices, default=Address_type.HOME)
 
