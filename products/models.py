@@ -1,13 +1,13 @@
 from django.db import models
-
+from django.core.validators import MinValueValidator
 # Create your models here.
 
 class Category(models.Model):
-  title = models.TextField()
-  description = models.TextField()
-
+  name = models.CharField(max_length=200)
 
 class Product(models.Model):
-  category = models.ForeignKey(Category, on_delete=models.CASCADE)
-  product = models.TextField()
-  productImage = models.ImageField(null=True, blank=True)
+  name = models.CharField(max_length=200)
+  description = models.TextField()
+  price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator('0.01')])
+  stock_quantity = models.PositiveIntegerField(default=0)
+  category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
