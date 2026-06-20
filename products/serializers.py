@@ -23,3 +23,9 @@ class CreateProductSerializer(serializers.ModelSerializer):
 
     return product
   
+
+class ShowProductsSerializer(serializers.ModelSerializer):
+
+  class Meta:
+    model = Product
+    fields = ['id', 'name', 'description', 'price', 'stock_quantity', 'category']
