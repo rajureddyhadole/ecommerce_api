@@ -1,6 +1,6 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
-from .serializers import CreateProductSerializer, ShowProductsSerializer
+from .serializers import CreateProductSerializer, ShowProductsSerializer, EditProductSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Category, Product
@@ -11,16 +11,15 @@ from rest_framework.permissions import IsAuthenticated
 @permission_classes([IsAuthenticated])
 def create_product(request):
 
-  category_name = request.data.get('category', None)
+  category_name = request.data.get('category')
 
   if category_name:
     
-    category = Category.objects.filter(name=category_name).first()
-
-    if not category:
-      category = Category.objects.create(
-        name=category_name
-      )
+    category, _ = Category.objects.get_or_create(
+      name=category_name
+    )
+  else:
+    return Response({'error': "Category is required"}, status=status.HTTP_400_BAD_REQUEST)
   
   serializer = CreateProductSerializer(data=request.data, context={'category': category})
 
@@ -56,5 +55,29 @@ def show_products(request):
   return Response({
     'data': serializer.data
   })
+
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def edit_product(request, product_id):
+  
+  product = get_object_or_404(Product, id=product_id)
+
+  serializer = EditProductSerializer(product, data=request.data, partial=True)
+
+  if serializer.is_valid():
+
+    serializer.save()
+
+    return Response({
+      'message': "prodct edit is successfully done",
+      'data': serializer.data
+    })
+  
+  return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+  
 
 

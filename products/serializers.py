@@ -29,3 +29,11 @@ class ShowProductsSerializer(serializers.ModelSerializer):
   class Meta:
     model = Product
     fields = ['id', 'name', 'description', 'price', 'stock_quantity', 'category']
+
+
+
+class EditProductSerializer(serializers.ModelSerializer):
+
+  class Meta:
+    model = Product
+    fields = ['id', 'name', 'description', 'price', 'stock_quantity', 'category']
