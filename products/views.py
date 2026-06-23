@@ -1,14 +1,14 @@
 from django.shortcuts import render, get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
-from .serializers import CreateProductSerializer, ShowProductsSerializer, EditProductSerializer
+from .serializers import CreateProductSerializer, ShowProductsSerializer, EditProductSerializer, GetProductDetailsSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Category, Product
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 # Create your views here.
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUser])
 def create_product(request):
 
   category_name = request.data.get('category')
@@ -57,9 +57,21 @@ def show_products(request):
   })
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_product_details(request, product_id):
+  
+  product = get_object_or_404(Product, id=product_id)
+
+  serializer = GetProductDetailsSerializer(product)
+
+  return Response({
+    'data': serializer.data
+  })
+
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUser])
 def edit_product(request, product_id):
   
   product = get_object_or_404(Product, id=product_id)
@@ -78,6 +90,15 @@ def edit_product(request, product_id):
   return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def delete_product(request, product_id):
   
+  product = get_object_or_404(Product, id=product_id)
 
+  product.delete()
 
+  return Response({
+    'message': "product deleted successfully",
+  })
