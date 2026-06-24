@@ -7,6 +7,8 @@ from .models import Category, Product
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 # Create your views here.
 
+
+############## Product CRUD ######################
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def create_product(request):
@@ -102,3 +104,37 @@ def delete_product(request, product_id):
   return Response({
     'message': "product deleted successfully",
   })
+
+
+################ Category CRUD #############
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def create_category(request):
+  
+  category_name = request.data.get('category', None)
+
+  if category_name:
+
+    category, created = Category.objects.get_or_create(
+      name=category_name
+    )
+
+    if created:
+
+      return Response({
+        'message': "category created successfully",
+        'category': {
+          'id': category.id,
+          'name': category.name,
+        }
+      }, status=status.HTTP_201_CREATED)  
+    else:
+
+      return Response({
+        'message': "Category already exists"
+      }, status=status.HTTP_200_OK)
+
+
+  return Response({
+    'error': "category name not present in the request body"
+  }, status=status.HTTP_400_BAD_REQUEST)
