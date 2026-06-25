@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Category, Product
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from django.db.models import Q
 # Create your views here.
 
 
@@ -111,7 +112,7 @@ def delete_product(request, product_id):
 @permission_classes([IsAdminUser])
 def create_category(request):
   
-  category_name = request.data.get('category', None)
+  category_name = request.data.get('name', None)
 
   if category_name:
 
@@ -138,3 +139,37 @@ def create_category(request):
   return Response({
     'error': "category name not present in the request body"
   }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAdminUser])
+def edit_category(request, category_id):
+
+  category_name = request.data.get('name', None)
+
+  if not category_name:
+
+    return Response({
+      'error': "category name is missing"
+    }, status=status.HTTP_400_BAD_REQUEST)
+  
+  category = get_object_or_404(Category, id=category_id)
+  
+  exists = Category.objects.exclude(id=category_id).filter(name=category_name).first()
+
+  if exists:
+
+    return Response({
+      'message': "Category with this name already exists"
+    }, status=status.HTTP_400_BAD_REQUEST)
+  
+
+  category.name = category_name
+
+  category.save()
+
+  return Response({
+    'message': "category updated successfully"
+  }, status=status.HTTP_200_OK)
+
+
