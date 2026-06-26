@@ -6,6 +6,7 @@ from rest_framework import status
 from .models import Category, Product
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.db.models import Q
+import json
 # Create your views here.
 
 
@@ -173,3 +174,28 @@ def edit_category(request, category_id):
   }, status=status.HTTP_200_OK)
 
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def show_categories(request):
+  categories = Category.objects.all()
+
+  data = [{"id": catg.id, "name": catg.name} for catg in categories]
+  
+  return Response({
+    'message': "These are the categories",
+    'data': data
+  }, status=status.HTTP_200_OK)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def delete_category(request, category_id):
+  
+  category = get_object_or_404(Category, id=category_id)
+
+  category.delete()
+
+  return Response({
+    'message': "category deleted successfully"
+  }, status=status.HTTP_200_OK)
