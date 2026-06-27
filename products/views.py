@@ -109,37 +109,58 @@ def delete_product(request, product_id):
 
 
 ################ Category CRUD #############
-@api_view(['POST'])
-@permission_classes([IsAdminUser])
-def create_category(request):
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def category_list_create(request):
+
+  if request.method == "GET":
+    categories = Category.objects.all()
+
+    data = [{"id": catg.id, "name": catg.name} for catg in categories]
+    
+    return Response({
+      'message': "These are the categories",
+      'data': data
+    }, status=status.HTTP_200_OK)
   
-  category_name = request.data.get('name', None)
 
-  if category_name:
-
-    category, created = Category.objects.get_or_create(
-      name=category_name
-    )
-
-    if created:
-
+  if request.method == "POST":
+    
+    if not request.user.is_staff:
       return Response({
-        'message': "category created successfully",
-        'category': {
-          'id': category.id,
-          'name': category.name,
-        }
-      }, status=status.HTTP_201_CREATED)  
-    else:
+        'error': "You do not have permission"
+      }, status=status.HTTP_403_FORBIDDEN)
+    
+    category_name = request.data.get('name', None)
 
-      return Response({
-        'message': "Category already exists"
-      }, status=status.HTTP_200_OK)
+    category_name = category_name.strip()
+
+    if category_name:
+
+      category, created = Category.objects.get_or_create(
+        name=category_name
+      )
+
+      if created:
+
+        return Response({
+          'message': "category created successfully",
+          'category': {
+            'id': category.id,
+            'name': category.name,
+          }
+        }, status=status.HTTP_201_CREATED)  
+      else:
+
+        return Response({
+          'message': "Category already exists"
+        }, status=status.HTTP_200_OK)
 
 
-  return Response({
-    'error': "category name not present in the request body"
-  }, status=status.HTTP_400_BAD_REQUEST)
+    return Response({
+      'error': "category name not present in the request body"
+    }, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['PUT'])
@@ -173,19 +194,6 @@ def edit_category(request, category_id):
     'message': "category updated successfully"
   }, status=status.HTTP_200_OK)
 
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def show_categories(request):
-  categories = Category.objects.all()
-
-  data = [{"id": catg.id, "name": catg.name} for catg in categories]
-  
-  return Response({
-    'message': "These are the categories",
-    'data': data
-  }, status=status.HTTP_200_OK)
 
 
 @api_view(['DELETE'])
