@@ -7,9 +7,6 @@ class CreateProductSerializer(serializers.ModelSerializer):
     model = Product
     fields = ['id', 'name', 'description', 'price', 'stock_quantity', 'category']
 
-    extra_kwargs = {
-      'category': {'read_only': True}
-    }
 
   def create(self, validated_data):
 
@@ -18,7 +15,7 @@ class CreateProductSerializer(serializers.ModelSerializer):
       description=validated_data['description'],
       price=validated_data['price'],
       stock_quantity=validated_data['stock_quantity'],
-      category=self.context['category']
+      category=validated_data['category']
     )
 
     return product

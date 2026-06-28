@@ -11,54 +11,50 @@ import json
 
 
 ############## Product CRUD ######################
-@api_view(['POST'])
-@permission_classes([IsAdminUser])
-def create_product(request):
 
-  category_name = request.data.get('category')
-
-  if category_name:
-    
-    category, _ = Category.objects.get_or_create(
-      name=category_name
-    )
-  else:
-    return Response({'error': "Category is required"}, status=status.HTTP_400_BAD_REQUEST)
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def product_list_create(request):
   
-  serializer = CreateProductSerializer(data=request.data, context={'category': category})
+  if request.method == "GET":
+    
+    products = Product.objects.all()
+    category_param = request.query_params.get('category', None)
 
-  if serializer.is_valid():
+    if category_param:
 
-    serializer.save()
+      products = products.filter(
+        category=category_param
+      )
+
+    serializer = ShowProductsSerializer(products, many=True)
 
     return Response({
-      'message': "Product created successfully",
       'data': serializer.data
-    }, status=status.HTTP_201_CREATED)
+    })
   
-  return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+  if request.method == "POST":
 
+    if not request.user.is_staff:
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def show_products(request):
+      return Response({
+        'error': "You are not allowed to create product"
+      }, status=status.HTTP_403_FORBIDDEN)
 
-  products = Product.objects.all()
+    serializer = CreateProductSerializer(data=request.data)
 
-  category_param = request.query_params.get('category', None)
+    if serializer.is_valid():
 
-  if category_param:
+      serializer.save()
 
-    products = products.filter(
-      category=category_param
-    )
+      return Response({
+        'message': "Product created successfully",
+        'data': serializer.data
+      }, status=status.HTTP_201_CREATED)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-  serializer = ShowProductsSerializer(products, many=True)
-
-  return Response({
-    'data': serializer.data
-  })
 
 
 @api_view(['GET'])
@@ -163,47 +159,49 @@ def category_list_create(request):
     }, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['PUT'])
+
+
+
+@api_view(['PUT', 'DELETE'])
 @permission_classes([IsAdminUser])
-def edit_category(request, category_id):
+def category_detail(request, category_id):
 
-  category_name = request.data.get('name', None)
+  if request.method == "PUT":
 
-  if not category_name:
+    category_name = request.data.get('name', None)
+
+    if not category_name:
+
+      return Response({
+        'error': "category name is missing"
+      }, status=status.HTTP_400_BAD_REQUEST)
+    
+    category = get_object_or_404(Category, id=category_id)
+    
+    exists = Category.objects.exclude(id=category_id).filter(name=category_name).first()
+
+    if exists:
+
+      return Response({
+        'message': "Category with this name already exists"
+      }, status=status.HTTP_400_BAD_REQUEST)
+    
+
+    category.name = category_name
+
+    category.save()
 
     return Response({
-      'error': "category name is missing"
-    }, status=status.HTTP_400_BAD_REQUEST)
+      'message': "category updated successfully"
+    }, status=status.HTTP_200_OK)
   
-  category = get_object_or_404(Category, id=category_id)
-  
-  exists = Category.objects.exclude(id=category_id).filter(name=category_name).first()
 
-  if exists:
+  if request.method == "DELETE":
+
+    category = get_object_or_404(Category, id=category_id)
+
+    category.delete()
 
     return Response({
-      'message': "Category with this name already exists"
-    }, status=status.HTTP_400_BAD_REQUEST)
-  
-
-  category.name = category_name
-
-  category.save()
-
-  return Response({
-    'message': "category updated successfully"
-  }, status=status.HTTP_200_OK)
-
-
-
-@api_view(['DELETE'])
-@permission_classes([IsAdminUser])
-def delete_category(request, category_id):
-  
-  category = get_object_or_404(Category, id=category_id)
-
-  category.delete()
-
-  return Response({
-    'message': "category deleted successfully"
-  }, status=status.HTTP_200_OK)
+      'message': "category deleted successfully"
+    }, status=status.HTTP_200_OK)
