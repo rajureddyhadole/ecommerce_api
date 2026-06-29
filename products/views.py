@@ -1,12 +1,10 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
-from .serializers import CreateProductSerializer, ShowProductsSerializer, EditProductSerializer, GetProductDetailsSerializer
+from .serializers import ProductSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Category, Product
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from django.db.models import Q
-import json
 # Create your views here.
 
 
@@ -27,7 +25,7 @@ def product_list_create(request):
         category=category_param
       )
 
-    serializer = ShowProductsSerializer(products, many=True)
+    serializer = ProductSerializer(products, many=True)
 
     return Response({
       'data': serializer.data
@@ -42,7 +40,7 @@ def product_list_create(request):
         'error': "You are not allowed to create product"
       }, status=status.HTTP_403_FORBIDDEN)
 
-    serializer = CreateProductSerializer(data=request.data)
+    serializer = ProductSerializer(data=request.data)
 
     if serializer.is_valid():
 
@@ -57,51 +55,60 @@ def product_list_create(request):
 
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
-def get_product_details(request, product_id):
-  
-  product = get_object_or_404(Product, id=product_id)
+def product_detail(request, product_id):
 
-  serializer = GetProductDetailsSerializer(product)
+  if request.method == "GET":
 
-  return Response({
-    'data': serializer.data
-  })
+    product = get_object_or_404(Product, id=product_id)
 
-
-@api_view(['PUT'])
-@permission_classes([IsAdminUser])
-def edit_product(request, product_id):
-  
-  product = get_object_or_404(Product, id=product_id)
-
-  serializer = EditProductSerializer(product, data=request.data, partial=True)
-
-  if serializer.is_valid():
-
-    serializer.save()
+    serializer = ProductSerializer(product)
 
     return Response({
-      'message': "prodct edit is successfully done",
       'data': serializer.data
     })
   
-  return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+  if request.method == "PUT":
 
+    if not request.user.is_staff:
 
-@api_view(['DELETE'])
-@permission_classes([IsAdminUser])
-def delete_product(request, product_id):
+      return Response({
+        'error': "you are not allowed make changes"
+      }, status=status.HTTP_403_FORBIDDEN)
+    
+    product = get_object_or_404(Product, id=product_id)
+
+    serializer = ProductSerializer(product, data=request.data, partial=True)
+
+    if serializer.is_valid():
+
+      serializer.save()
+
+      return Response({
+        'message': "prodct edit is successfully done",
+        'data': serializer.data
+      })
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
   
-  product = get_object_or_404(Product, id=product_id)
 
-  product.delete()
+  if request.method == "DELETE":
 
-  return Response({
-    'message': "product deleted successfully",
-  })
+    if not request.user.is_staff:
+
+      return Response({
+        'error': "you cannot delete this."
+      }, status=status.HTTP_403_FORBIDDEN)
+
+    product = get_object_or_404(Product, id=product_id)
+
+    product.delete()
+
+    return Response({
+      'message': "product deleted successfully",
+    })
 
 
 ################ Category CRUD #############
@@ -130,9 +137,9 @@ def category_list_create(request):
     
     category_name = request.data.get('name', None)
 
-    category_name = category_name.strip()
-
     if category_name:
+
+      category_name = category_name.strip()
 
       category, created = Category.objects.get_or_create(
         name=category_name
