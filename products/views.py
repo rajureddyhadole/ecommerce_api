@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
-from .serializers import ProductSerializer
+from .serializers import ProductSerializer, CategorySerializer
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Category, Product
@@ -120,11 +120,11 @@ def category_list_create(request):
   if request.method == "GET":
     categories = Category.objects.all()
 
-    data = [{"id": catg.id, "name": catg.name} for catg in categories]
+    serializer = CategorySerializer(categories, many=True)
     
     return Response({
       'message': "These are the categories",
-      'data': data
+      'data': serializer.data
     }, status=status.HTTP_200_OK)
   
 
@@ -135,36 +135,17 @@ def category_list_create(request):
         'error': "You do not have permission"
       }, status=status.HTTP_403_FORBIDDEN)
     
-    category_name = request.data.get('name', None)
+    serializer = CategorySerializer(data=request.data)
 
-    if category_name:
+    if serializer.is_valid():
 
-      category_name = category_name.strip()
+      serializer.save()
 
-      category, created = Category.objects.get_or_create(
-        name=category_name
-      )
-
-      if created:
-
-        return Response({
-          'message': "category created successfully",
-          'category': {
-            'id': category.id,
-            'name': category.name,
-          }
-        }, status=status.HTTP_201_CREATED)  
-      else:
-
-        return Response({
-          'message': "Category already exists"
-        }, status=status.HTTP_200_OK)
-
-
-    return Response({
-      'error': "category name not present in the request body"
-    }, status=status.HTTP_400_BAD_REQUEST)
-
+      return Response({
+        'message': "new category created"
+      }, status=status.HTTP_201_CREATED)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -175,33 +156,20 @@ def category_detail(request, category_id):
 
   if request.method == "PUT":
 
-    category_name = request.data.get('name', None)
-
-    if not category_name:
-
-      return Response({
-        'error': "category name is missing"
-      }, status=status.HTTP_400_BAD_REQUEST)
-    
     category = get_object_or_404(Category, id=category_id)
-    
-    exists = Category.objects.exclude(id=category_id).filter(name=category_name).first()
 
-    if exists:
+    serializer = CategorySerializer(category, data=request.data)
+
+    if serializer.is_valid():
+
+      serializer.save()
 
       return Response({
-        'message': "Category with this name already exists"
-      }, status=status.HTTP_400_BAD_REQUEST)
+        'message': "category updated successfully"
+      }, status=status.HTTP_200_OK)
     
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    category.name = category_name
-
-    category.save()
-
-    return Response({
-      'message': "category updated successfully"
-    }, status=status.HTTP_200_OK)
-  
 
   if request.method == "DELETE":
 
