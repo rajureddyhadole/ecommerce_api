@@ -33,7 +33,7 @@ def add_to_cart(request):
             'message': "added to the cart successfully",
             'data': {
               'cart': cart_item.cart.id,
-              'product_id': cart_item.id,
+              'product_id': cart_item.product.id,
               'product': cart_item.product.name,
               'quantity': cart_item.quantity
             }
@@ -64,4 +64,24 @@ def add_to_cart(request):
   else:
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-      
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_cart_items(request):
+  
+  cart = Cart.objects.filter(user=request.user).first()
+
+  if cart:
+
+    cart_items = CartItem.objects.filter(cart=cart)
+
+    serializer = CartItemSerializer(cart_items, many=True)
+
+    return Response({
+      'data': serializer.data
+    })
+  else:
+    return Response({
+      'message': "your cart is empty. add some products",
+      'data': []
+    }, status=status.HTTP_200_OK)
