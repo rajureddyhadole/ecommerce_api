@@ -87,6 +87,7 @@ def cart_items_list_create(request):
       return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def update_cart_item_quantity(request, cart_item_id):
@@ -128,3 +129,22 @@ def update_cart_item_quantity(request, cart_item_id):
   
   return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def remove_from_cart(request, cart_item_id):
+
+  cart_item = get_object_or_404(CartItem, id=cart_item_id)
+
+  if cart_item.cart.user != request.user:
+
+    return Response({
+      'error': "you are not allowed to perform this operation."
+    }, status=status.HTTP_403_FORBIDDEN)
+  
+  cart_item.delete()
+
+  return Response({
+    'message': "cart item is successfully removed from cart."
+  }, status=status.HTTP_200_OK)
