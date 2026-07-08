@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Order, OrderItem
 from .serializers import CreateOrderSerializer, OrderDisplaySerializer
+from django.db import transaction
 # Create your views here.
 
 @api_view(['POST'])
@@ -35,29 +36,30 @@ def place_order(request):
       
       total += item.sub_total
 
+    with transaction.atomic():
     
-    order = Order.objects.create(
-      user=request.user,
-      total_amount=total,
-      shipping_address =serializer.validated_data.get('shipping_address'),
-      payment_status='pending'
-    )
-
-    for item in cart_items:
-
-      OrderItem.objects.create(
-        order=order,
-        product=item.product,
-        quantity=item.quantity,
-        bought_price=item.product.price,
-        status='pending'
+      order = Order.objects.create(
+        user=request.user,
+        total_amount=total,
+        shipping_address =serializer.validated_data.get('shipping_address'),
+        payment_status='pending'
       )
 
-      item.product.stock_quantity -= item.quantity
+      for item in cart_items:
 
-      item.product.save()
-    
-    cart_items.delete()
+        OrderItem.objects.create(
+          order=order,
+          product=item.product,
+          quantity=item.quantity,
+          bought_price=item.product.price,
+          status='pending'
+        )
+
+        item.product.stock_quantity -= item.quantity
+
+        item.product.save()
+      
+      cart_items.delete()
 
     response_serializer = OrderDisplaySerializer(order)
 
