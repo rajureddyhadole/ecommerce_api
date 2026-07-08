@@ -45,7 +45,7 @@ def place_order(request):
 
     for item in cart_items:
 
-      order_item = OrderItem.objects.create(
+      OrderItem.objects.create(
         order=order,
         product=item.product,
         quantity=item.quantity,
