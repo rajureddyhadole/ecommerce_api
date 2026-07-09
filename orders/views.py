@@ -5,7 +5,7 @@ from cart.models import Cart, CartItem
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Order, OrderItem
-from .serializers import CreateOrderSerializer, OrderDisplaySerializer
+from .serializers import CreateOrderSerializer, OrderDisplaySerializer, DisplayOrderItemsSerializer, DisplayOrdersListSerializer
 from django.db import transaction
 # Create your views here.
 
@@ -71,3 +71,38 @@ def place_order(request):
   return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def order_history(request):
+
+  orders = Order.objects.filter(user=request.user)
+  
+  serializer = DisplayOrdersListSerializer(orders, many=True)
+
+  return Response({
+    'message': "your order history",
+    'data': serializer.data
+  })
+
+  
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def order_details(request, order_id):
+
+  order = get_object_or_404(Order, id=order_id, user=request.user)
+
+  serializer = OrderDisplaySerializer(order)
+
+  return Response({
+    'message': "your order details.",
+    'data': serializer.data
+  })
+
+
+# cancel order api
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def cancel_order(request, order_id):
+  pass

@@ -25,3 +25,10 @@ class OrderDisplaySerializer(serializers.ModelSerializer):
   class Meta:
     model = Order
     fields = ['id', 'total_amount', 'payment_status', 'shipping_address', 'created_at', 'items']
+
+
+class DisplayOrdersListSerializer(serializers.ModelSerializer):
+
+  class Meta:
+    model = Order
+    fields = ['id', 'total_amount', 'payment_status', 'created_at']
