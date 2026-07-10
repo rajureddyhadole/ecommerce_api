@@ -1,11 +1,11 @@
 from django.shortcuts import render, get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from cart.models import Cart, CartItem
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Order, OrderItem
-from .serializers import CreateOrderSerializer, OrderDisplaySerializer, DisplayOrderItemsSerializer, DisplayOrdersListSerializer
+from .serializers import CreateOrderSerializer, OrderDisplaySerializer, DisplayOrderItemsSerializer, DisplayOrdersListSerializer, ViewAllOrdersSerializer
 from django.db import transaction
 # Create your views here.
 
@@ -101,8 +101,18 @@ def order_details(request, order_id):
   })
 
 
-# cancel order api
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def cancel_order(request, order_id):
-  pass
+
+########################## admin apis ###################
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def view_all_orders(request):
+
+  orders = Order.objects.all()
+
+  serializer = ViewAllOrdersSerializer(orders, many=True)
+
+  return Response({
+    'message': "orders list",
+    'data': serializer.data
+  })

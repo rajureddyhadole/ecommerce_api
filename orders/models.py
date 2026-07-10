@@ -12,6 +12,8 @@ class Order(models.Model):
   class PaymentStatus(models.TextChoices):
     PENDING = 'pending', 'Pending'
     PAID = 'paid', 'Paid'
+    CANCELLED = 'cancelled', 'Cancelled'
+    PARTIALLY_CANCELLED = 'partially_cancelled', 'Partially_cancelled'
     
   payment_status = models.CharField(choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
   created_at = models.DateTimeField(auto_now_add=True)
@@ -33,6 +35,7 @@ class OrderItem(models.Model):
     SHIPPED = 'shipped', 'Shipped'
     DELIVERED = 'delivered', 'Delivered'
     RETURNED = 'returned', 'Returned'
+    CANCELLED = 'cancelled', 'Cancelled'
 
   status = models.CharField(choices=Status.choices, default=Status.PENDING)
   created_at = models.DateTimeField(auto_now_add=True)
