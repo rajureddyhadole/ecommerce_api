@@ -5,7 +5,7 @@ from cart.models import Cart, CartItem
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Order, OrderItem
-from .serializers import CreateOrderSerializer, OrderDisplaySerializer, DisplayOrderItemsSerializer, DisplayOrdersListSerializer, ViewAllOrdersSerializer
+from .serializers import CreateOrderSerializer, OrderDisplaySerializer, DisplayOrderItemsSerializer, DisplayOrdersListSerializer, ViewAllOrdersSerializer, ViewOrderDetailsSerializer
 from django.db import transaction
 # Create your views here.
 
@@ -116,3 +116,18 @@ def view_all_orders(request):
     'message': "orders list",
     'data': serializer.data
   })
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def view_order_details(request, order_id):
+  
+  order = get_object_or_404(Order, id=order_id)
+
+  serializer = ViewOrderDetailsSerializer(order)
+
+  return Response({
+    'data': serializer.data
+  })
+

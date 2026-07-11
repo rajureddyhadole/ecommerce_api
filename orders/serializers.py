@@ -43,3 +43,12 @@ class ViewAllOrdersSerializer(serializers.ModelSerializer):
   class Meta:
     model = Order
     fields = ['id', 'customer', 'total_amount', 'payment_status', 'created_at']
+
+
+class ViewOrderDetailsSerializer(serializers.ModelSerializer):
+  customer = serializers.CharField(source="user.username", read_only=True)
+  items = DisplayOrderItemsSerializer(many=True, read_only=True)
+
+  class Meta:
+    model = Order
+    fields = ['id', 'customer', 'total_amount', 'payment_status', 'created_at', 'items']
