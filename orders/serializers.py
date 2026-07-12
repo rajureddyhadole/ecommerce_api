@@ -52,3 +52,13 @@ class ViewOrderDetailsSerializer(serializers.ModelSerializer):
   class Meta:
     model = Order
     fields = ['id', 'customer', 'total_amount', 'payment_status', 'created_at', 'items']
+
+
+class UpdateOrderItemStatusSerializer(serializers.ModelSerializer):
+  product_id = serializers.IntegerField(source='product.id', read_only=True)
+  product_name = serializers.CharField(source='product.name', read_only=True)
+
+  class Meta:
+    model = OrderItem
+    fields = ['product_id', 'product_name', 'quantity', 'bought_price', 'status']
+    read_only_fields = ['product_id', 'product_name', 'quantity', 'bought_price']

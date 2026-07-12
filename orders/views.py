@@ -5,7 +5,7 @@ from cart.models import Cart, CartItem
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Order, OrderItem
-from .serializers import CreateOrderSerializer, OrderDisplaySerializer, DisplayOrderItemsSerializer, DisplayOrdersListSerializer, ViewAllOrdersSerializer, ViewOrderDetailsSerializer
+from .serializers import CreateOrderSerializer, OrderDisplaySerializer, DisplayOrdersListSerializer, ViewAllOrdersSerializer, ViewOrderDetailsSerializer, UpdateOrderItemStatusSerializer
 from django.db import transaction
 # Create your views here.
 
@@ -131,3 +131,23 @@ def view_order_details(request, order_id):
     'data': serializer.data
   })
 
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def update_order_item_status(request, order_item_id):
+
+  order_item = get_object_or_404(OrderItem, id=order_item_id)
+
+  serializer = UpdateOrderItemStatusSerializer(order_item, data=request.data, partial=True)
+
+  if serializer.is_valid():
+
+    serializer.save()
+
+    return Response({
+      'message': "order Item status updated successfully",
+      'data': serializer.data
+    }, status=status.HTTP_200_OK)
+  
+  return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
