@@ -151,3 +151,43 @@ def update_order_item_status(request, order_item_id):
     }, status=status.HTTP_200_OK)
   
   return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+########### payment mock ##############
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def pay(request, order_id):
+
+  order = get_object_or_404(Order, id=order_id, user=request.user)
+
+  if order.PaymentStatus.PENDING:
+    result = request.data.get('result', None)
+
+    if result:
+      if result == "success":
+        order.payment_status = 'paid'
+        order.save()
+
+        response_serializer = DisplayOrdersListSerializer(order)
+
+        return Response({
+          'message': "payment status updated successfully",
+          'data': response_serializer.data
+        }, status=status.HTTP_200_OK)
+      elif result == "failed":
+        return Response({
+          'error': "failed to pay"
+        }, status=status.HTTP_400_BAD_REQUEST)
+      else:
+        return Response({
+          'error': "not a valid value"
+        }, status=status.HTTP_400_BAD_REQUEST)
+    else:
+      return Response({
+        'error': "result field is missing"
+      }, status=status.HTTP_400_BAD_REQUEST)
+  elif order.PaymentStatus.PAID:
+    return Response({
+      'error': "already paid"
+    }, status=status.HTTP_400_BAD_REQUEST)
