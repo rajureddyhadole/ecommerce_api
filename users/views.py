@@ -50,7 +50,7 @@ def login_view(request):
           'username': user.username,
           "email": user.email
         }
-      })
+      }, status=status.HTTP_200_OK)
     
     return Response({'error': "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
   
