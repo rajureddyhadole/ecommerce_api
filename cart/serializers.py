@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
 from .models import CartItem, Cart
+from products.serializers import ProductSummarySerializer
 
 class AddToCartSerializer(serializers.ModelSerializer):
 
@@ -60,18 +61,12 @@ class AddToCartSerializer(serializers.ModelSerializer):
     return cart_item
 
 
-
-
-
 class CartItemDisplaySerializer(serializers.ModelSerializer):
-
-  product_id = serializers.IntegerField(source="product.id", read_only=True)
-  product_name = serializers.CharField(source="product.name", read_only=True)
-  price = serializers.DecimalField(source="product.price", max_digits=10, decimal_places=2, read_only=True)
+  product_info = ProductSummarySerializer(source="product", read_only=True)
 
   class Meta:
     model = CartItem
-    fields = ['id', 'product_id', 'product_name', 'price', 'quantity', 'sub_total' ]
+    fields = ['id', 'product_info', 'quantity', 'sub_total' ]
     read_only_fields = ['id', 'sub_total']
 
 

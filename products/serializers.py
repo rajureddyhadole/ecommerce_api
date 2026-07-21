@@ -15,3 +15,10 @@ class CategorySerializer(serializers.ModelSerializer):
     model = Category
     fields = ['id', 'name']
     read_only_fields = ['id']
+
+
+class ProductSummarySerializer(serializers.ModelSerializer):
+
+  class Meta:
+    model = Product
+    fields = ['id', 'name', 'price']

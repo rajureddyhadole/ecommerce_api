@@ -36,51 +36,15 @@ def cart_items_list_create(request):
 
     serializer = AddToCartSerializer(data=request.data, context={'request': request})
 
-    if serializer.is_valid():
-      product = serializer.validated_data.get('product')
-      quantity = serializer.validated_data.get('quantity')
+    serializer.is_valid(raise_exception=True)
 
-      cart, _ = Cart.objects.get_or_create(user=request.user)
+    cart_item = serializer.save()
 
-      cart_item = CartItem.objects.filter(cart=cart, product=product).first()
+    response_serializer = CartItemDisplaySerializer(cart_item)
 
-      if cart_item:
-        if product.stock_quantity >= (cart_item.quantity + quantity):
-          cart_item.quantity += quantity
-          cart_item.save()
-
-          return Response({
-            'message': "added to the cart successfully",
-            'data': {
-              'cart': cart_item.cart.id,
-              'product_id': cart_item.product.id,
-              'product': cart_item.product.name,
-              'quantity': cart_item.quantity
-            }
-          })
-        else:
-          return Response({
-            'error': "out of stock. we dont have the quantity you require"
-          }, status=status.HTTP_400_BAD_REQUEST)
-      else:
-        cart_item_obj = CartItem.objects.create(
-          cart=cart,
-          product=product,
-          quantity=quantity
-        )
-
-        return Response({
-          'message': "cartItem created successfully",
-          'data': {
-            'cart': cart_item_obj.cart.id,
-            'product_id': cart_item_obj.product.id,
-            'product': cart_item_obj.product.name,
-            'quantity': cart_item_obj.quantity
-          }
-        })
-    else:
-      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    return Response({
+      'data': response_serializer.data
+    }, status=status.HTTP_200_OK)
 
 
 @api_view(['PATCH', 'DELETE'])
