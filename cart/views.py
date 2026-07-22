@@ -2,7 +2,6 @@ from django.shortcuts import render, get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from .serializers import CartItemUpdateSerializer, AddToCartSerializer, CartItemDisplaySerializer
-from products.models import Product
 from .models import Cart, CartItem
 from rest_framework.response import Response
 from rest_framework import status
@@ -13,24 +12,14 @@ from rest_framework import status
 def cart_items_list_create(request):
 
   if request.method == "GET":
-    cart = Cart.objects.filter(user=request.user).first()
+    cart_items = CartItem.objects.filter(cart__user=request.user).select_related('product')
 
-    if cart:
+    serializer = CartItemDisplaySerializer(cart_items, many=True)
 
-      cart_items = CartItem.objects.filter(cart=cart)
+    return Response({
+      'data': serializer.data
+    })
 
-      serializer = CartItemDisplaySerializer(cart_items, many=True)
-
-      return Response({
-        'data': serializer.data
-      })
-    else:
-      return Response({
-        'message': "your cart is empty. add some products",
-        'data': []
-      }, status=status.HTTP_200_OK)
-
-  
 
   if request.method == "POST":
 
@@ -53,53 +42,25 @@ def cart_item_detail(request, cart_item_id):
 
   if request.method == "PATCH":
 
-    cart_item = get_object_or_404(CartItem, id=cart_item_id)
+    cart_item = get_object_or_404(CartItem, id=cart_item_id, cart__user=request.user)
 
-    if cart_item.cart.user != request.user:
+    serializer = CartItemUpdateSerializer(cart_item, data=request.data)
 
-      return Response({
-        'error': "You don't have the permission."
-      }, status=status.HTTP_403_FORBIDDEN)
-    
-    serializer = CartItemUpdateSerializer(cart_item, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
 
-    if serializer.is_valid():
+    cart_item = serializer.save()
 
-      quantity = serializer.validated_data.get('quantity')
+    response_serializer = CartItemDisplaySerializer(cart_item)
 
-      if quantity == 0:
-
-        cart_item.delete()
-
-        return Response({
-          'message': "the cartitem is removed from the cart"
-        })
-
-      if cart_item.product.stock_quantity >= quantity:
-
-        serializer.save()
-
-        return Response({
-          'message': "quantity updated successfully",
-          'data': serializer.data
-        }, status=status.HTTP_200_OK)
-      else:
-        return Response({
-          'error': "out of stock."
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response({
+      'message': "quantity updated successfully",
+      'data': response_serializer.data
+    }, status=status.HTTP_200_OK)
   
 
 
   if request.method == "DELETE":
-    cart_item = get_object_or_404(CartItem, id=cart_item_id)
-
-    if cart_item.cart.user != request.user:
-
-      return Response({
-        'error': "you are not allowed to perform this operation."
-      }, status=status.HTTP_403_FORBIDDEN)
+    cart_item = get_object_or_404(CartItem, id=cart_item_id, cart__user=request.user)
     
     cart_item.delete()
 

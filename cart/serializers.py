@@ -71,8 +71,20 @@ class CartItemDisplaySerializer(serializers.ModelSerializer):
 
 
 class CartItemUpdateSerializer(serializers.ModelSerializer):
+  quantity = serializers.IntegerField(required=True)
 
   class Meta:
     model = CartItem
-    fields = ['id', 'cart', 'product', 'quantity']
-    read_only_fields = ['id', 'cart', 'product']
+    fields = ['quantity']
+
+  def validate_quantity(self, quantity):
+
+    if quantity <= 0:
+      raise serializers.ValidationError("quantity should be at least 1.")
+    
+    existing_stock = self.instance.product.stock_quantity
+
+    if existing_stock < quantity:
+      raise serializers.ValidationError(f"Only {existing_stock} items are currently available.")
+    
+    return quantity
