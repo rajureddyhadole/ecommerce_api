@@ -1,74 +1,41 @@
 from django.shortcuts import render, get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from cart.models import Cart, CartItem
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Order, OrderItem
-from .serializers import CreateOrderSerializer, OrderDisplaySerializer, DisplayOrdersListSerializer, ViewAllOrdersSerializer, ViewOrderDetailsSerializer, UpdateOrderItemStatusSerializer
-from django.db import transaction
+from .serializers import CreateOrderSerializer, OrderDisplaySerializer, DisplayOrdersListSerializer, ViewAllOrdersSerializer, ViewOrderDetailsSerializer, UpdateOrderItemStatusSerializer, PaySerializer
+from .services import place_order, EmptyCartError, OutOfStock, pay_order, PayFailed, PayAlreadyDone
 # Create your views here.
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def place_order(request):
+def place_order_view(request):
 
   serializer = CreateOrderSerializer(data=request.data)
 
-  if serializer.is_valid():
+  serializer.is_valid(raise_exception=True)
 
-    cart = get_object_or_404(Cart, user=request.user)
-
-    cart_items = CartItem.objects.filter(cart=cart)
-
-    if not cart_items.exists():
-      return Response({
-        'error': "the cart is empty"
-      }, status=status.HTTP_400_BAD_REQUEST)
-    
-    total = 0
-    for item in cart_items:
-
-      if item.product.stock_quantity < item.quantity:
-        return Response({
-          'error': "out of stock"
-        }, status=status.HTTP_400_BAD_REQUEST)
-      
-      total += item.sub_total
-
-    with transaction.atomic():
-    
-      order = Order.objects.create(
-        user=request.user,
-        total_amount=total,
-        shipping_address =serializer.validated_data.get('shipping_address'),
-        payment_status='pending'
-      )
-
-      for item in cart_items:
-
-        OrderItem.objects.create(
-          order=order,
-          product=item.product,
-          quantity=item.quantity,
-          bought_price=item.product.price,
-          status='pending'
-        )
-
-        item.product.stock_quantity -= item.quantity
-
-        item.product.save()
-      
-      cart_items.delete()
-
-    response_serializer = OrderDisplaySerializer(order)
-
+  try:
+    order = place_order(
+      request.user,
+      serializer.validated_data['shipping_address']
+    )
+  except EmptyCartError as e:
     return Response({
-      'message': "Order placed successfully",
-      'data': response_serializer.data
-    }, status=status.HTTP_201_CREATED)
-  
-  return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+      "error": str(e)
+    }, status=status.HTTP_400_BAD_REQUEST)
+  except OutOfStock as e:
+    return Response({
+      "error": str(e)
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+  response_serializer = OrderDisplaySerializer(order)
+
+  return Response({
+    'message': "Order placed successfully",
+    'data': response_serializer.data
+  }, status=status.HTTP_201_CREATED)
 
 
 
@@ -108,7 +75,7 @@ def order_details(request, order_id):
 @permission_classes([IsAdminUser])
 def view_all_orders(request):
 
-  orders = Order.objects.all()
+  orders = Order.objects.all().select_related("user")
 
   serializer = ViewAllOrdersSerializer(orders, many=True)
 
@@ -141,16 +108,14 @@ def update_order_item_status(request, order_item_id):
 
   serializer = UpdateOrderItemStatusSerializer(order_item, data=request.data, partial=True)
 
-  if serializer.is_valid():
+  serializer.is_valid(raise_exception=True)
 
-    serializer.save()
+  serializer.save()
 
-    return Response({
-      'message': "order Item status updated successfully",
-      'data': serializer.data
-    }, status=status.HTTP_200_OK)
-  
-  return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+  return Response({
+    'message': "order Item status updated successfully",
+    'data': serializer.data
+  }, status=status.HTTP_200_OK)
 
 
 
@@ -161,33 +126,26 @@ def pay(request, order_id):
 
   order = get_object_or_404(Order, id=order_id, user=request.user)
 
-  if order.PaymentStatus.PENDING:
-    result = request.data.get('result', None)
+  serializer = PaySerializer(data=request.data)
+  
+  serializer.is_valid(raise_exception=True)
 
-    if result:
-      if result == "success":
-        order.payment_status = 'paid'
-        order.save()
+  result = serializer.validated_data['result']
 
-        response_serializer = DisplayOrdersListSerializer(order)
-
-        return Response({
-          'message': "payment status updated successfully",
-          'data': response_serializer.data
-        }, status=status.HTTP_200_OK)
-      elif result == "failed":
-        return Response({
-          'error': "failed to pay"
-        }, status=status.HTTP_400_BAD_REQUEST)
-      else:
-        return Response({
-          'error': "not a valid value"
-        }, status=status.HTTP_400_BAD_REQUEST)
-    else:
-      return Response({
-        'error': "result field is missing"
-      }, status=status.HTTP_400_BAD_REQUEST)
-  elif order.PaymentStatus.PAID:
+  try:
+    order_obj = pay_order(order, result)
+  except PayFailed as e:
     return Response({
-      'error': "already paid"
+      'error': str(e)
     }, status=status.HTTP_400_BAD_REQUEST)
+  except PayAlreadyDone as e:
+    return Response({
+      'error': str(e)
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+  response_serializer = DisplayOrdersListSerializer(order_obj)
+  
+  return Response({
+    'message': "payment status updated successfully",
+    'data': response_serializer.data
+  }, status=status.HTTP_200_OK)

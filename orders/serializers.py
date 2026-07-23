@@ -62,3 +62,16 @@ class UpdateOrderItemStatusSerializer(serializers.ModelSerializer):
     model = OrderItem
     fields = ['product_id', 'product_name', 'quantity', 'bought_price', 'status']
     read_only_fields = ['product_id', 'product_name', 'quantity', 'bought_price']
+
+
+
+######### paymentSerializer#####
+
+class PaySerializer(serializers.Serializer):
+  result = serializers.CharField(max_length=20)
+
+  def validate_result(self, value):
+    if value == "success" or value == "failure":
+      return value
+    else:
+      raise serializers.ValidationError("Value does not match the payment status")
