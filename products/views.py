@@ -42,20 +42,18 @@ def product_list_create(request):
 
     serializer = ProductSerializer(data=request.data)
 
-    if serializer.is_valid():
+    serializer.is_valid(raise_exception=True)
 
-      serializer.save()
+    serializer.save()
 
-      return Response({
-        'message': "Product created successfully",
-        'data': serializer.data
-      }, status=status.HTTP_201_CREATED)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response({
+      'message': "Product created successfully",
+      'data': serializer.data
+    }, status=status.HTTP_201_CREATED)
 
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
+@api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def product_detail(request, product_id):
 
@@ -70,7 +68,7 @@ def product_detail(request, product_id):
     })
   
 
-  if request.method == "PUT":
+  if request.method == "PATCH":
 
     if not request.user.is_staff:
 
@@ -82,16 +80,14 @@ def product_detail(request, product_id):
 
     serializer = ProductSerializer(product, data=request.data, partial=True)
 
-    if serializer.is_valid():
+    serializer.is_valid(raise_exception=True)
 
-      serializer.save()
+    serializer.save()
 
-      return Response({
-        'message': "prodct edit is successfully done",
-        'data': serializer.data
-      })
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response({
+      'message': "prodct edit is successfully done",
+      'data': serializer.data
+    })
   
 
   if request.method == "DELETE":
@@ -137,15 +133,13 @@ def category_list_create(request):
     
     serializer = CategorySerializer(data=request.data)
 
-    if serializer.is_valid():
+    serializer.is_valid(raise_exception=True)
 
-      serializer.save()
+    serializer.save()
 
-      return Response({
-        'message': "new category created"
-      }, status=status.HTTP_201_CREATED)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response({
+      'message': "new category created"
+    }, status=status.HTTP_201_CREATED)
 
 
 
@@ -160,15 +154,13 @@ def category_detail(request, category_id):
 
     serializer = CategorySerializer(category, data=request.data)
 
-    if serializer.is_valid():
+    serializer.is_valid(raise_exception=True)
 
-      serializer.save()
+    serializer.save()
 
-      return Response({
-        'message': "category updated successfully"
-      }, status=status.HTTP_200_OK)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response({
+      'message': "category updated successfully"
+    }, status=status.HTTP_200_OK)
 
 
   if request.method == "DELETE":
@@ -179,4 +171,4 @@ def category_detail(request, category_id):
 
     return Response({
       'message': "category deleted successfully"
-    }, status=status.HTTP_200_OK)
+    }, status=status.HTTP_204_NO_CONTENT)
